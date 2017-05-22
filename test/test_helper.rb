@@ -8,9 +8,9 @@ require 'fileutils'
 require 'minitest/autorun'
 require 'mocha/mini_test'
 require 'bootsnap/cache_wrapper'
-require 'active_support/cache'
-cache = ActiveSupport::Cache::FileStore.new('tmp/cache')
+require 'moneta'
 
+cache = Moneta.new(:Daybreak, file: 'tmp/cache')
 Bootsnap::CompileCache.setup(
   iseq: Bootsnap::CacheWrapper.get(cache),
   yaml: false
