@@ -1,4 +1,5 @@
 require 'test_helper'
+require 'benchmark'
 require 'benchmark/ips'
 
 class BenchmarkTest < Minitest::Test
@@ -16,13 +17,32 @@ class BenchmarkTest < Minitest::Test
   end
 
   def test_benchmark
-    path = set_file('a.rb', 'a = 3', 100)
+    path = set_file('a.rb', "a = 3\n"*1000, 100)
 
     Benchmark.ips do |x|
       x.time = 10
       x.warmup = 2
-      x.report("iseq_load") do
+      x.report('iseq_load') do
         load(path)
+      end
+    end
+
+    num = 10000
+    num.times do |n|
+      set_file("#{n}.rb", "a = 3\n"*1000, 100)
+    end
+    Benchmark.bm do |x|
+      x.report('iseq_write') do
+        num.times do |n|
+          load("#{n}.rb")
+        end
+      end
+    end
+    Benchmark.bm do |x|
+      x.report('iseq_read') do
+        num.times do |n|
+          load("#{n}.rb")
+        end
       end
     end
   end
