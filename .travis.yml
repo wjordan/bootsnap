@@ -1,0 +1,4 @@
+os: osx
+language: ruby
+rvm: ruby-2.4.0
+script: bin/testunit test/benchmark/benchmark_test.rb
