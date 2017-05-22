@@ -10,7 +10,7 @@ require 'mocha/mini_test'
 require 'bootsnap/cache_wrapper'
 require 'moneta'
 
-cache = Moneta.new(:Daybreak, file: 'tmp/cache')
+cache = Moneta.new(:Daybreak, file: File.join(Dir.mktmpdir('cache'), 'cache'))
 Bootsnap::CompileCache.setup(
   iseq: Bootsnap::CacheWrapper.get(cache),
   yaml: false
