@@ -1,26 +1,23 @@
 require 'msgpack'
 
 class XattrHandler
-  class << self
-    attr_accessor :msgpack_factory, :block
-  end
+  attr_accessor :msgpack_factory, :block
 
   def initialize(&block)
-    puts 'initialize'
-    self.class.block = block
+    self.block = block
 
     # MessagePack serializes symbols as strings by default.
     # We want them to roundtrip cleanly, so we use a custom factory.
     # see: https://github.com/msgpack/msgpack-ruby/pull/122
     factory = MessagePack::Factory.new
     factory.register_type(0x00, Symbol)
-    self.class.msgpack_factory = factory
+    self.msgpack_factory = factory
   end
 
   # data is the source content of the file loaded from path
   def input_to_storage(data, _)
-    obj = self.class.block.call(data)
-    self.class.msgpack_factory.packer.write(obj).to_s
+    obj = block.call(data)
+    msgpack_factory.packer.write(obj).to_s
   rescue NoMethodError, RangeError
     # if the object included things that we can't serialize, fall back to
     # Marshal. It's a bit slower, but can encode anything yaml can.
@@ -34,12 +31,12 @@ class XattrHandler
     if data[0] == 0x04.chr && data[1] == 0x08.chr
       Marshal.load(data)
     else
-      self.class.msgpack_factory.unpacker.feed(data).read
+      msgpack_factory.unpacker.feed(data).read
     end
   end
 
   def input_to_output(data)
-    self.class.block.call(data)
+    block.call(data)
   end
 end
 

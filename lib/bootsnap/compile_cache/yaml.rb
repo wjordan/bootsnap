@@ -12,7 +12,7 @@ module Bootsnap
       end
 
       def self.install!(cache)
-        self.cache = if cache.is_a?(Bootsnap::CacheWrapper)
+        self.cache = if cache.is_a?(CacheWrapper::Wrapper)
           require 'bootsnap/cache/fetch_cache'
           FetchCache.new(cache)
         else

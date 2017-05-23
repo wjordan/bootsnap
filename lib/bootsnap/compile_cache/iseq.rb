@@ -42,7 +42,7 @@ module Bootsnap
       end
 
       def self.install!(cache)
-        self.cache = if cache.is_a?(Bootsnap::CacheWrapper)
+        self.cache = if cache.is_a?(CacheWrapper::Wrapper)
           FetchCache.new(cache)
         else
           require 'bootsnap/cache/xattr_cache'

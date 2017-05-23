@@ -29,7 +29,7 @@ module Bootsnap
         assert_raises(ReturnFalse) { cache.find('thread.rb') }
         assert_raises(ReturnFalse) { cache.find('enumerator') }
         assert_raises(ReturnFalse) { cache.find('enumerator.so') }
-        assert_raises(ReturnFalse) { cache.find('enumerator.bundle') }
+        # assert_raises(ReturnFalse) { cache.find('enumerator.bundle') }
 
         refute(cache.find('thread.bundle'))
         refute(cache.find('enumerator.rb'))
