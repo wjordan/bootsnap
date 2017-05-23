@@ -1,4 +1,5 @@
 require 'test_helper'
+require 'bootsnap/cache/xattr_cache'
 
 class CompileCacheKeyFormatTest < Minitest::Test
   include TmpdirHelper
@@ -13,6 +14,7 @@ class CompileCacheKeyFormatTest < Minitest::Test
   }
 
   def setup
+    skip unless Bootsnap::CompileCache::ISeq.cache.is_a? XattrCache
     @prev_dir = Dir.pwd
     @tmp_dir = Dir.mktmpdir('aotcc-test')
     Dir.chdir(@tmp_dir)

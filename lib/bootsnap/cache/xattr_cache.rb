@@ -41,9 +41,12 @@ class XattrHandler
 end
 
 class XattrCache
-  # Fetch the object using path as cache key.
+  attr_accessor :handler
+
+  # Fetch cached, processed contents from a file path.
+  # fetch(path) {|contents| block } -> obj
   def fetch(path, &block)
-    handler = XattrHandler.new(&block)
+    self.handler ||= XattrHandler.new(&block)
     Bootsnap::CompileCache::Native.fetch(
       path.to_s,
       handler

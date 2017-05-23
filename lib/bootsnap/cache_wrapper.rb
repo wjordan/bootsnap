@@ -21,7 +21,11 @@ module Bootsnap
 
     class Wrapper < Struct.new(:cache)
       def transaction
-        yield
+        if cache.respond_to?(:transaction)
+          cache.transaction { yield }
+        else
+          yield
+        end
       end
     end
 

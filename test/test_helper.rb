@@ -9,13 +9,10 @@ require 'ffi-xattr'
 require 'minitest/autorun'
 require 'mocha/mini_test'
 
-require 'bootsnap/cache_wrapper'
-require 'active_support/cache'
-cache = ActiveSupport::Cache::FileStore.new('tmp/cache')
-
-Bootsnap::CompileCache.setup(
-  iseq: Bootsnap::CacheWrapper.get(cache),
-  yaml: false
+Bootsnap.setup(
+  cache_dir: Dir.mktmpdir('compile-cache'),
+  load_path_cache: false,
+  autoload_paths_cache: false
 )
 
 module NullCache

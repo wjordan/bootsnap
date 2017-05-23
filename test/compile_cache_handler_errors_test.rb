@@ -1,12 +1,15 @@
 require 'test_helper'
+require 'bootsnap/cache/xattr_cache'
 
 class CompileCacheHandlerErrorsTest < Minitest::Test
   include TmpdirHelper
 
   def setup
+    skip unless Bootsnap::CompileCache::ISeq.cache.is_a? XattrCache
     @prev_dir = Dir.pwd
     @tmp_dir = Dir.mktmpdir('aotcc-test')
     Dir.chdir(@tmp_dir)
+    @handler = Bootsnap::CompileCache::ISeq.cache.handler
   end
 
   def teardown
@@ -21,15 +24,15 @@ class CompileCacheHandlerErrorsTest < Minitest::Test
 
   def test_input_to_storage_unexpected_type
     path = set_file('a.rb', 'a = 3', 100)
-    Bootsnap::CompileCache::ISeq.expects(:input_to_storage).returns(nil)
+    @handler.expects(:input_to_storage).returns(nil)
     # this could be made slightly more obvious though.
     assert_raises(TypeError) { load(path) }
   end
 
   def test_input_to_storage_invalid_instance_of_expected_type
     path = set_file('a.rb', 'a = 3', 100)
-    Bootsnap::CompileCache::ISeq.expects(:input_to_storage).returns('broken')
-    Bootsnap::CompileCache::ISeq.expects(:input_to_output).with('a = 3').returns('whatever')
+    @handler.expects(:input_to_storage).returns('broken')
+    @handler.expects(:input_to_output).with('a = 3').returns('whatever')
     _, err = capture_subprocess_io do
       load(path)
     end
@@ -39,13 +42,13 @@ class CompileCacheHandlerErrorsTest < Minitest::Test
   def test_input_to_storage_raises
     path = set_file('a.rb', 'a = 3', 100)
     klass = Class.new(StandardError)
-    Bootsnap::CompileCache::ISeq.expects(:input_to_storage).raises(klass, 'oops')
+    @handler.expects(:input_to_storage).raises(klass, 'oops')
     assert_raises(klass) { load(path) }
   end
 
   def test_storage_to_output_unexpected_type
     path = set_file('a.rb', 'a = 3', 100)
-    Bootsnap::CompileCache::ISeq.expects(:storage_to_output).returns(Object.new)
+    @handler.expects(:storage_to_output).returns(Object.new)
     # It seems like ruby doesn't really care.
     load(path)
   end
@@ -57,7 +60,7 @@ class CompileCacheHandlerErrorsTest < Minitest::Test
   def test_storage_to_output_raises
     path = set_file('a.rb', 'a = 3', 100)
     klass = Class.new(StandardError)
-    Bootsnap::CompileCache::ISeq.expects(:storage_to_output).times(2).raises(klass, 'oops')
+    @handler.expects(:storage_to_output).times(2).raises(klass, 'oops')
     assert_raises(klass) { load(path) }
     # called from two paths; this tests the second.
     assert_raises(klass) { load(path) }
@@ -65,8 +68,8 @@ class CompileCacheHandlerErrorsTest < Minitest::Test
 
   def test_input_to_output_unexpected_type
     path = set_file('a.rb', 'a = 3', 100)
-    Bootsnap::CompileCache::ISeq.expects(:input_to_storage).raises(Bootsnap::CompileCache::Uncompilable)
-    Bootsnap::CompileCache::ISeq.expects(:input_to_output).returns(Object.new)
+    @handler.expects(:input_to_storage).raises(Bootsnap::CompileCache::Uncompilable)
+    @handler.expects(:input_to_output).returns(Object.new)
     # It seems like ruby doesn't really care.
     load(path)
   end
@@ -78,8 +81,8 @@ class CompileCacheHandlerErrorsTest < Minitest::Test
   def test_input_to_output_raises
     path = set_file('a.rb', 'a = 3', 100)
     klass = Class.new(StandardError)
-    Bootsnap::CompileCache::ISeq.expects(:input_to_storage).raises(Bootsnap::CompileCache::Uncompilable)
-    Bootsnap::CompileCache::ISeq.expects(:input_to_output).raises(klass, 'oops')
+    @handler.expects(:input_to_storage).raises(Bootsnap::CompileCache::Uncompilable)
+    @handler.expects(:input_to_output).raises(klass, 'oops')
     assert_raises(klass) { load(path) }
   end
 

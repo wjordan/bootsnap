@@ -2,12 +2,13 @@ require_relative 'bootsnap/version'
 require_relative 'bootsnap/load_path_cache'
 require_relative 'bootsnap/compile_cache'
 require_relative 'bootsnap/cache_wrapper'
+require_relative 'bootsnap/load_path_cache/store'
 
 module Bootsnap
   InvalidConfiguration = Class.new(StandardError)
 
   def self.setup(
-    cache_dir: nil,
+    cache_dir:,
     development_mode: true,
     load_path_cache: true,
     autoload_paths_cache: true,
@@ -15,14 +16,20 @@ module Bootsnap
     compile_cache_iseq: true,
     compile_cache_yaml: true
   )
-    load_path_cache = CacheWrapper.get(load_path_cache)
-    if load_path_cache.nil? && cache_dir
-      require_relative 'bootsnap/load_path_cache/store'
-      load_path_cache = Bootsnap::LoadPathCache::Store.new(cache_dir)
+    load_path_cache &&= CacheWrapper.get(load_path_cache) ||
+      Bootsnap::LoadPathCache::Store.new(cache_dir + '/bootsnap-load-path-cache')
+
+    osx = RUBY_PLATFORM =~ /darwin/
+    default_compile_cache = if osx
+      true
+    else
+      CacheWrapper.get(
+        Bootsnap::LoadPathCache::Store.new(cache_dir + '/bootsnap-compile-cache')
+      )
     end
 
-    compile_cache_iseq = CacheWrapper.get(compile_cache_iseq) || compile_cache_iseq
-    compile_cache_yaml = CacheWrapper.get(compile_cache_yaml) || compile_cache_yaml
+    compile_cache_iseq &&= CacheWrapper.get(compile_cache_iseq) || default_compile_cache
+    compile_cache_yaml &&= CacheWrapper.get(compile_cache_yaml) || default_compile_cache
 
     if autoload_paths_cache && !load_path_cache
       raise InvalidConfiguration, "feature 'autoload_paths_cache' depends on feature 'load_path_cache'"

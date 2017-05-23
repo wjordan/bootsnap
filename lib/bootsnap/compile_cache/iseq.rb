@@ -19,38 +19,50 @@ module Bootsnap
         attr_accessor :cache
       end
 
-      def load_iseq(path)
-        binary = ISeq.cache.fetch(path) do |data|
-          RubyVM::InstructionSequence.compile(data).to_binary
+      module InstructionSequenceMixin
+        def load_iseq(path)
+          binary = ISeq.cache.fetch(path) do |data|
+            begin
+              RubyVM::InstructionSequence.compile(data, path, path).to_binary
+            rescue SyntaxError
+              raise Uncompilable, 'syntax error'
+            end
+          end
+          RubyVM::InstructionSequence.load_from_binary(binary)
+        rescue RuntimeError => e
+          if e.message == 'broken binary format'
+            STDERR.puts "[Bootsnap::CompileCache] warning: rejecting broken binary"
+            return nil
+          else
+            raise
+          end
         end
-        RubyVM::InstructionSequence.load_from_binary(binary)
-      rescue => e
-        STDERR.puts "[Bootsnap::CompileCache] couldn't load: #{path}, #{e}"
-        nil
-      end
 
-      def compile_option=(hash)
-        super(hash)
-        ISeq.compile_option_updated
+        def compile_option=(hash)
+          super(hash)
+          Bootsnap::CompileCache::ISeq.compile_option_updated
+        end
       end
 
       def self.compile_option_updated
         option = RubyVM::InstructionSequence.compile_option
         crc = Zlib.crc32(option.inspect)
         Bootsnap::CompileCache::Native.compile_option_crc32 = crc
-        Cache.compile_option = crc
+        Cache.compile_option = crc.to_s
       end
 
-      def self.install!(cache)
+      def self.install!(cache = nil)
         self.cache = if cache.is_a?(CacheWrapper::Wrapper)
-          FetchCache.new(cache)
+          Cache.new(cache)
         else
           require 'bootsnap/cache/xattr_cache'
           XattrCache.new
         end
 
-        self.compile_option_updated
-        RubyVM::InstructionSequence.singleton_class.prepend Bootsnap::CompileCache::ISeq
+        Bootsnap::CompileCache::ISeq.compile_option_updated
+        class << RubyVM::InstructionSequence
+          prepend InstructionSequenceMixin
+        end
       end
     end
   end

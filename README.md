@@ -22,18 +22,15 @@ Next, add this to your boot setup immediately after `require 'bundler/setup'` (i
 possible: the sooner this is loaded, the sooner it can start optimizing things)
 
 ```ruby
-cache = ActiveSupport::Cache::FileStore.new('tmp/cache')
-# or plug in your favorite cache store, e.g.:
-# cache = Moneta.new(:File, dir: 'tmp/cache')
-
 require 'bootsnap'
 Bootsnap.setup(
+  cache_dir:            'tmp/cache', # Path to your cache
   development_mode:     ENV['MY_ENV'] == 'development',
-  load_path_cache:      cache,        # Optimize the LOAD_PATH with the provided cache
-  autoload_paths_cache: true,        # Should we also optimize ActiveSupport autoloads?
+  load_path_cache:      true,        # Should we optimize the LOAD_PATH with a cache?
+  autoload_paths_cache: true,        # Should we optimize ActiveSupport autoloads with cache?
   disable_trace:        false,       # Sets `RubyVM::InstructionSequence.compile_option = { trace_instruction: false }`
-  compile_cache_iseq:   cache,        # Compile Ruby code to provided cache
-  compile_cache_yaml:   cache         # Compile YAML to provided cache
+  compile_cache_iseq:   true,        # Should compile Ruby code into ISeq cache?
+  compile_cache_yaml:   true         # Should compile YAML into a cache?
 )
 ```
 
@@ -54,7 +51,8 @@ into two broad categories:
 * [Compilation caching](#compilation-caching)
     * `RubyVM::InstructionSequence.load_iseq` is implemented to cache the result of ruby bytecode
       compilation.
-    * `YAML.load_file` is modified to cache the result of loading a YAML object.
+    * `YAML.load_file` is modified to cache the result of loading a YAML object in MessagePack format
+      (or Marshal, if the message uses types unsupported by MessagePack).
 
 ### Path Pre-Scanning
 
@@ -119,7 +117,7 @@ result too, raising a `LoadError` without touching the filesystem at all.
 
 ### Compilation Caching
 
-*(Another implementation of this concept can be found in [yomikomu](https://github.com/ko1/yomikomu)).*
+*(A simpler implementation of this concept can be found in [yomikomu](https://github.com/ko1/yomikomu)).*
 
 Ruby has complex grammar and parsing it is not a particularly cheap operation. Since 1.9, Ruby has
 translated ruby source to an internal bytecode format, which is then executed by the Ruby VM. Since
@@ -211,7 +209,7 @@ open    /c/nope.bundle -> -1
 
 We use the `*_path_cache` features in production and haven't experienced any issues in a long time.
 
-The `compile_cache_*` features work well for us in development on macOS and Linux, depending on the provided cache implementation.
+The `compile_cache_*` features work well for us in development on macOS, and Linux is also supported with a file-based cache.
 
 `disable_trace` should be completely safe, but we don't really use it because some people like to
 use tools that make use of `trace` instructions.
