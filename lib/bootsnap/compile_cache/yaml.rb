@@ -13,7 +13,13 @@ module Bootsnap
       end
 
       def self.install!(cache)
-        self.cache = FetchCache.new(cache)
+        self.cache = if cache.is_a?(CacheWrapper::Wrapper)
+          FetchCache.new(cache)
+        else
+          require 'bootsnap/cache/native_fetch_cache'
+          NativeFetchCache.new(cache)
+        end
+
         require 'yaml'
         ::YAML.singleton_class.prepend Bootsnap::CompileCache::YAML
       end

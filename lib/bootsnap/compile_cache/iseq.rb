@@ -1,5 +1,6 @@
 require 'bootsnap/bootsnap'
 require 'bootsnap/cache/fetch_cache'
+require 'zlib'
 
 module Bootsnap
   module CompileCache
@@ -23,6 +24,7 @@ module Bootsnap
           binary = ISeq.cache.fetch(path) do |_, file_path|
             RubyVM::InstructionSequence.compile_file(file_path).to_binary
           end
+          return nil if binary.length > 1024 * 1024
           RubyVM::InstructionSequence.load_from_binary(binary)
         rescue RuntimeError => e
           if e.message == 'broken binary format'
@@ -40,11 +42,19 @@ module Bootsnap
       end
 
       def self.compile_option_updated
-        Cache.compile_option = RubyVM::InstructionSequence.compile_option.inspect
+        option = RubyVM::InstructionSequence.compile_option.inspect
+        Cache.compile_option = option
+        Bootsnap::CompileCache::Native.compile_option_crc32 = Zlib.crc32(option)
       end
 
       def self.install!(cache = nil)
-        self.cache = Cache.new(cache)
+        self.cache = if cache.is_a?(CacheWrapper::Wrapper)
+          Cache.new(cache)
+        else
+          require 'bootsnap/cache/native_fetch_cache'
+          NativeFetchCache.new(cache)
+        end
+
         Bootsnap::CompileCache::ISeq.compile_option_updated
         class << RubyVM::InstructionSequence
           prepend InstructionSequenceMixin

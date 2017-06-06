@@ -14,14 +14,20 @@ module Bootsnap
     autoload_paths_cache: true,
     disable_trace: false,
     compile_cache_iseq: true,
-    compile_cache_yaml: true
+    compile_cache_yaml: true,
+    native_cache: true
   )
     load_path_cache &&= CacheWrapper.get(load_path_cache) ||
       Bootsnap::LoadPathCache::Store.new(cache_dir + '/bootsnap-load-path-cache')
 
-    default_compile_cache = CacheWrapper.get(
-      Bootsnap::LoadPathCache::Store.new(cache_dir + '/bootsnap-compile-cache')
-    )
+    compile_cache_path = cache_dir + '/bootsnap-compile-cache'
+    default_compile_cache = if native_cache
+      compile_cache_path
+    else
+      CacheWrapper.get(
+        Bootsnap::LoadPathCache::Store.new(compile_cache_path)
+      )
+    end
 
     compile_cache_iseq &&= CacheWrapper.get(compile_cache_iseq) || default_compile_cache
     compile_cache_yaml &&= CacheWrapper.get(compile_cache_yaml) || default_compile_cache
